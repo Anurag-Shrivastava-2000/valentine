@@ -56,8 +56,8 @@
     .photo-container {
       display: none;
       margin: 18px auto;
-      position: relative;
       width: 220px;
+      position: relative;
     }
 
     .polaroid {
@@ -66,7 +66,6 @@
       border-radius: 12px;
       box-shadow: 0 18px 40px rgba(0,0,0,.25);
       animation: floatIn .8s ease forwards, heartbeat 2.8s infinite;
-      position: relative;
     }
 
     .polaroid img {
@@ -96,7 +95,6 @@
       100% { transform: scale(1); }
     }
 
-    /* ---------- FLOATING HEARTS ---------- */
     .heart {
       position: absolute;
       bottom: -10px;
@@ -199,6 +197,7 @@
     const result = document.getElementById("result");
     const canvas = document.getElementById("confettiCanvas");
 
+    /* ---------- CONFETTI ---------- */
     function resizeCanvas() {
       const dpr = window.devicePixelRatio || 1;
       canvas.width = innerWidth * dpr;
@@ -222,7 +221,8 @@
       })();
     }
 
-    function hearts() {
+    /* ---------- HEARTS ---------- */
+    function spawnHearts() {
       for (let i = 0; i < 10; i++) {
         const h = document.createElement("div");
         h.className = "heart";
@@ -233,16 +233,50 @@
       }
     }
 
+    /* ---------- NO BUTTON RUNAWAY ---------- */
     let yesScale = 1;
+
+    function clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    }
+
+    function moveNo(px, py) {
+      const z = zone.getBoundingClientRect();
+      const b = noBtn.getBoundingClientRect();
+
+      let dx = (b.left + b.width / 2) - px;
+      let dy = (b.top + b.height / 2) - py;
+      let mag = Math.hypot(dx, dy) || 1;
+
+      dx /= mag;
+      dy /= mag;
+
+      let newLeft = (b.left - z.left) + dx * 140;
+      let newTop  = (b.top - z.top) + dy * 140;
+
+      newLeft = clamp(newLeft, 0, z.width - b.width);
+      newTop  = clamp(newTop, 0, z.height - b.height);
+
+      noBtn.style.left = newLeft + "px";
+      noBtn.style.top = newTop + "px";
+      noBtn.style.transform = "none";
+
+      yesScale = Math.min(2.2, yesScale + 0.08);
+      yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
+    }
+
     zone.addEventListener("pointermove", e => {
       const b = noBtn.getBoundingClientRect();
-      if (Math.hypot(b.x - e.clientX, b.y - e.clientY) < 120) {
-        noBtn.style.left = Math.random() * 60 + "%";
-        yesScale = Math.min(2.2, yesScale + .08);
-        yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
-      }
+      const d = Math.hypot(
+        (b.left + b.width / 2) - e.clientX,
+        (b.top + b.height / 2) - e.clientY
+      );
+      if (d < 140) moveNo(e.clientX, e.clientY);
     });
 
+    noBtn.addEventListener("click", e => e.preventDefault());
+
+    /* ---------- YES CLICK ---------- */
     yesBtn.addEventListener("click", () => {
       zone.style.display = "none";
       hint.style.display = "none";
@@ -250,7 +284,7 @@
       result.style.display = "block";
       resizeCanvas();
       launchConfetti();
-      hearts();
+      spawnHearts();
     });
   </script>
 </body>
